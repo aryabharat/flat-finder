@@ -9,6 +9,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const mobile = matchMedia('(max-width: 700px)').matches;
 const REPO = 'https://github.com/kairothq/flat-finder';
+const DATA = `${import.meta.env.BASE_URL}data/`; // works at / and under a GitHub Pages subpath
 const params = new URLSearchParams(location.search);
 const store = { // localStorage can be missing or blocked: never let it break the page
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -28,19 +29,20 @@ const STATE_LABEL = { match: 'Matches your search', likely: 'Likely match', prob
 
 let crit = structuredClone(DEFAULT_CRITERIA);
 let baseMode = BASE_MODES.includes(params.get('map')) ? params.get('map') : 'streets';
-let roomMode = 'off', areaUnit = 'gaj', sortBy = 'best';
+let roomMode = 'off', areaUnit = 'gaj', sortBy = 'best'; // areaUnit: sq ft by default outside North India, set in boot()
 let data, byId, map, feed, selected = null, states = new Map(), tourTimer = null, cityId = 'gurgaon', details = null;
 let myList = [], allAmenities = [];
 const highlights = { glow: true, bounds: true, labels: true, ...store.get('ff-highlights', {}) };
 
 async function boot() {
-  const cities = await fetch('/data/cities.json').then((r) => r.json()).catch(() => ({ gurgaon: { name: 'Gurugram' } }));
+  const cities = await fetch(`${DATA}cities.json`).then((r) => r.json()).catch(() => ({ gurgaon: { name: 'Gurugram' } }));
   cityId = cities[params.get('city')] ? params.get('city') : 'gurgaon';
   const [city, shapes] = await Promise.all([
-    fetch(`/data/${cityId}.json`).then((r) => r.json()),
-    fetch(`/data/${cityId}-shapes.geojson`).then((r) => r.json()),
+    fetch(`${DATA}${cityId}.json`).then((r) => r.json()),
+    fetch(`${DATA}${cityId}-shapes.geojson`).then((r) => r.json()),
   ]);
   data = city;
+  if (cityId !== 'gurgaon') areaUnit = 'sqft'; // gaj is a North Indian unit; Bengaluru and Mumbai think in sq ft
   OVERVIEW.center = city.city.center;
   OVERVIEW.zoom = city.city.zoom || OVERVIEW.zoom;
   byId = new Map(city.societies.map((s) => [s.id, s]));
@@ -53,10 +55,10 @@ async function boot() {
 
   myList = params.get('list') ? params.get('list').split(',').filter((id) => byId.has(id)) : store.get(`ff-list-${cityId}`, []).filter((id) => byId.has(id));
   const c = city.counts, m = city.price_model || {}, rated = city.societies.filter((s) => s.rating).length;
-  $('note').textContent = `${c.on_map.toLocaleString()} societies · ${(c.for_sale || 0).toLocaleString()} homes for sale, ${(c.for_rent || 0).toLocaleString()} for rent on Magicbricks · ${c.verified} verified from brochures and HRERA plans`;
+  $('note').textContent = `${c.on_map.toLocaleString()} societies · ${(c.for_sale || 0).toLocaleString()} homes for sale, ${(c.for_rent || 0).toLocaleString()} for rent on Magicbricks · ${c.verified} verified from brochures and ${cityId === 'gurgaon' ? 'HRERA' : 'RERA'} plans`;
   $('about-prices').innerHTML = `Prices and rents are medians of live Magicbricks listings. <b>⚠</b> marks a listing price our checks think is a typo (far from the same home nearby, or rent and price that cannot both be right): it is shown as listed but not used for filters. <b>~</b> marks our estimate: rent is about ${((m.city_yield || 0.025) * 100).toFixed(1)}% of the price per year here (measured on ${m.pairs || 0} society and BHK pairs, correlation ${m.log_price_rent_correlation ?? 'n/a'}). "Probably fits" uses a cautious bedroom size estimated from unit size (${city.room_model?.n || 0} verified unit types). Resident ratings exist for ${rated.toLocaleString()} societies.`;
-  $('dl-all').href = `/data/${cityId}-societies.csv`;
-  $('dl-units').href = `/data/${cityId}-units.csv`;
+  $('dl-all').href = `${DATA}${cityId}-societies.csv`;
+  $('dl-units').href = `${DATA}${cityId}-units.csv`;
   $('dl-results').onclick = exportResults;
 
   feed = createFeed($('feed'), $('log-mode'), { events: city.events, byId });
@@ -447,7 +449,7 @@ function renderCard(s) {
 
 let detailsPromise = null;
 function loadDetails() {
-  detailsPromise ||= fetch(`/data/${cityId}-details.json`).then((r) => r.json()).then((d) => (details = d)).catch(() => (details = {}));
+  detailsPromise ||= fetch(`${DATA}${cityId}-details.json`).then((r) => r.json()).then((d) => (details = d)).catch(() => (details = {}));
   return detailsPromise;
 }
 
@@ -524,7 +526,7 @@ function buildList() {
   };
   $('btn-share').onclick = async () => {
     if (!myList.length) { toast('Your list is empty.'); return; }
-    const url = `${location.origin}/?city=${cityId}&list=${myList.join(',')}`;
+    const url = `${location.origin}${location.pathname}?city=${cityId}&list=${myList.join(',')}`;
     try { await navigator.clipboard.writeText(url); toast('Link to your list copied.'); } catch { prompt('Copy this link', url); }
   };
   if (params.get('list') && myList.length) crit.only = [...myList];
@@ -544,7 +546,7 @@ function exportResults() {
   const rows = ranked().map((s) => {
     const p = priceFor(s, crit.mode, crit.bhk);
     return [s.name, s.locality, states.get(s.id), s.kind, p?.value, p ? p.estimated : '', s.sale_count, s.rent_count, s.score, s.rating, s.towers, s.units,
-      s.nearby?.park?.m, s.nearby?.metro?.m, s.url, s.gmaps, `${location.origin}/?city=${cityId}&open=${s.id}`];
+      s.nearby?.park?.m, s.nearby?.metro?.m, s.url, s.gmaps, `${location.origin}${location.pathname}?city=${cityId}&open=${s.id}`];
   });
   const blob = new Blob([[cols, ...rows].map((r) => r.map(q).join(',')).join('\n')], { type: 'text/csv' });
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `flat-finder-${cityId}-${crit.mode}-results.csv` });

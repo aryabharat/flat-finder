@@ -2,7 +2,7 @@
 
 Every housing society in a city on one night map. Set the smallest bedroom you can live with, size, BHK, amenities and budget, and watch the societies that fit light up. Every number links to where it came from.
 
-Gurugram is first: about 2,700 projects from Magicbricks, building outlines from OpenStreetMap, and a set of societies verified by reading builder brochures and HRERA plans.
+Gurugram was first: about 2,700 projects from Magicbricks, building outlines from OpenStreetMap, and a set of societies verified by reading builder brochures and HRERA plans. Bengaluru is built from the same pipeline (`?city=bangalore`): Magicbricks projects and listings plus OpenStreetMap outlines and nearby places. It has no hand-verified rows yet, so room sizes there come from floor plan OCR or show as "not checked yet".
 
 ## What the colours mean
 
@@ -69,7 +69,7 @@ cd ../web && npm install && npm run dev
 
 Tests: `cd pipeline && uv run --with pytest pytest` and `cd web && npx vitest run --root .. cli web/src`.
 
-Cities live in `data/cities.json`. Gurugram is built; Bengaluru and Mumbai are configured and need the pipeline run (see the skill, Job 2).
+Cities live in `data/cities.json`. Gurugram and Bengaluru are built; Mumbai is configured and needs the pipeline run (see the skill, Job 2).
 
 Press `/` to search for a society. The Streets button switches to a street map with road and sector names.
 

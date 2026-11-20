@@ -19,7 +19,7 @@ async function city(env, origin, id) {
 const KINDS = ['apartment', 'builder floor', 'villa', 'plot', 'commercial', 'other'];
 const PLACES = ['park', 'metro', 'rail', 'school', 'hospital', 'shopping'];
 const FILTERS = {
-  city: { type: 'string', description: 'City id, e.g. "gurgaon"', default: 'gurgaon' },
+  city: { type: 'string', description: 'City id: "gurgaon" or "bangalore"', default: 'gurgaon' },
   mode: { type: 'string', enum: ['buy', 'rent'], default: 'buy', description: 'Which price the budget and price sorting use' },
   localities: { type: 'array', items: { type: 'string' }, description: 'Sectors or localities, e.g. ["Sector 56", "Golf Course Road"] or ["56", "57"]. Matches the locality exactly, or as its start ("Sohna" also matches "Sohna Road"). Use list_localities to see names.' },
   name_contains: { type: 'string', description: 'Words that must appear in the society name, developer or locality, e.g. "DLF" or "Ireo"' },
