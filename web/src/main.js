@@ -36,7 +36,7 @@ const highlights = { glow: true, bounds: true, labels: true, ...store.get('ff-hi
 
 async function boot() {
   const cities = await fetch(`${DATA}cities.json`).then((r) => r.json()).catch(() => ({ gurgaon: { name: 'Gurugram' } }));
-  cityId = cities[params.get('city')] ? params.get('city') : 'gurgaon';
+  cityId = cities[params.get('city')] ? params.get('city') : cities.bangalore ? 'bangalore' : 'gurgaon';
   const [city, shapes] = await Promise.all([
     fetch(`${DATA}${cityId}.json`).then((r) => r.json()),
     fetch(`${DATA}${cityId}-shapes.geojson`).then((r) => r.json()),
